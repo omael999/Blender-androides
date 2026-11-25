@@ -1,0 +1,186 @@
+# SPDX-FileCopyrightText: 2026 Blender Authors
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+# Builds the Android port: dependencies (cached), Blender (libmain.so) and the APK.
+# See build_files/android/README.md.
+
+name: Android build
+
+on:
+  push:
+    branches: [android-port]
+  workflow_dispatch:
+    inputs:
+      rebuild_deps:
+        description: "Ignore the dependency cache and rebuild everything"
+        type: boolean
+        default: false
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANDROID_ABI: arm64-v8a
+  ANDROID_API: "29"
+  NDK_VERSION: 27.2.12479018
+  LIBDIR: ${{ github.workspace }}/lib/android_arm64-v8a
+
+jobs:
+  deps:
+    name: Dependencies (NDK)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Cache key
+        id: key
+        run: |
+          echo "key=android-deps-${ANDROID_ABI}-${NDK_VERSION}-${{ hashFiles(
+            'build_files/build_environment/cmake/versions.cmake',
+            'build_files/build_environment/android/build_deps_android.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependency cache
+        id: cache
+        if: ${{ !inputs.rebuild_deps }}
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            lib/android_arm64-v8a
+            lib/android_src
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Free disk space
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/powershell /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Host tools
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build meson rsync patch
+
+      - uses: actions/setup-python@v5
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          python-version: "3.13"
+
+      - name: Install NDK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Build dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          JOBS=$(nproc) WORK_DIR="$RUNNER_TEMP/deps" \
+            ./build_files/build_environment/android/build_deps_android.sh 2>&1 | tee deps.log
+          # SDL's source is a symlink into WORK_DIR, keep a real copy for the cache.
+          cp -rL lib/android_src/SDL3 lib/android_src/SDL3.real
+          rm lib/android_src/SDL3 && mv lib/android_src/SDL3.real lib/android_src/SDL3
+
+      - name: Save dependency cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            lib/android_arm64-v8a
+            lib/android_src
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Upload log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deps-log
+          path: deps.log
+
+  blender:
+    name: Blender + APK
+    needs: deps
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/powershell /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Restore dependency cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            lib/android_arm64-v8a
+            lib/android_src
+          key: ${{ needs.deps.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build rsync ccache
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14"
+
+      - name: Install NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: android-ccache-${{ github.sha }}
+          restore-keys: android-ccache-
+
+      - name: Build Blender and APK
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+          CCACHE_MAXSIZE: 3G
+        run: |
+          BUILD_DIR="$RUNNER_TEMP/build_android" JOBS=$(nproc) \
+            ./build_files/android/build_android.sh --skip-deps 2>&1 | tee blender.log
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-android-${{ env.ANDROID_ABI }}
+          path: build_files/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      - name: Upload log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-log
+          path: blender.log
