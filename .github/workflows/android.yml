@@ -118,6 +118,24 @@ jobs:
           fetch-depth: 1
           submodules: false
 
+      - name: Fetch Git LFS data files
+        # Blender keeps startup.blend, icons, studio lights etc. in Git LFS on
+        # projects.blender.org; forks on GitHub only contain the pointer files.
+        # Only what the build needs is fetched (not the ~6700 test files).
+        run: |
+          INCLUDE="release/datafiles/**,assets/**,scripts/startup/**"
+          for url in \
+              https://projects.blender.org/blender/blender.git/info/lfs \
+              https://github.com/blender/blender.git/info/lfs; do
+            echo "Trying LFS server: $url"
+            if git -c lfs.url="$url" lfs pull --include="$INCLUDE"; then
+              break
+            fi
+          done
+          size=$(stat -c%s release/datafiles/startup.blend)
+          echo "startup.blend: $size bytes"
+          test "$size" -gt 1024
+
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc /usr/local/.ghcup \
