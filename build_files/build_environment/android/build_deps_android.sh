@@ -170,7 +170,12 @@ build_jpeg() {
 build_tiff() {
   cmake_dep TIFF tiff -DBUILD_SHARED_LIBS=OFF -Dtiff-tools=OFF -Dtiff-tests=OFF \
     -Dtiff-docs=OFF -Dlzma=OFF -Dwebp=OFF -Djbig=OFF -Dlerc=OFF -Dzstd=OFF \
-    -DZLIB_ROOT="$(P zlib)" -DJPEG_ROOT="$(P jpeg)" -DDeflate_ROOT="$(P deflate)"
+    -Dlibdeflate=OFF -Dtiff-contrib=OFF -Dsphinx=OFF \
+    -DZLIB_ROOT="$(P zlib)" -DZLIB_LIBRARY="$(P zlib)/lib/libz.a" \
+    -DZLIB_INCLUDE_DIR="$(P zlib)/include" \
+    -DJPEG_LIBRARY="$(P jpeg)/lib/libjpeg.a" -DJPEG_INCLUDE_DIR="$(P jpeg)/include"
+  # Without libdeflate TiffTargets.cmake does not reference a Deflate::Deflate target,
+  # which consumers such as OpenImageIO do not define. Deflate still works through zlib.
 }
 
 build_brotli() {

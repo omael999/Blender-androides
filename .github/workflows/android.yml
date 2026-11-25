@@ -84,6 +84,7 @@ jobs:
       - name: Build dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          set -o pipefail
           JOBS=$(nproc) WORK_DIR="$RUNNER_TEMP/deps" \
             ./build_files/build_environment/android/build_deps_android.sh 2>&1 | tee deps.log
           # SDL's source is a symlink into WORK_DIR, keep a real copy for the cache.
@@ -168,6 +169,7 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: ccache
           CCACHE_MAXSIZE: 3G
         run: |
+          set -o pipefail
           BUILD_DIR="$RUNNER_TEMP/build_android" JOBS=$(nproc) \
             ./build_files/android/build_android.sh --skip-deps 2>&1 | tee blender.log
 
