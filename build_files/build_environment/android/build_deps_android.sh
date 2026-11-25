@@ -226,7 +226,9 @@ build_pystring() {
   "${NDK_BIN}/${TRIPLE}${API}-clang++" -O2 -fPIC -std=c++17 -c "${src}/pystring.cpp" \
     -o "${build}/pystring.o"
   "${NDK_BIN}/llvm-ar" rcs "$(P pystring)/lib/libpystring.a" "${build}/pystring.o"
+  # OpenColorIO includes it both as <pystring/pystring.h> and <pystring.h>.
   cp "${src}/pystring.h" "$(P pystring)/include/pystring/"
+  cp "${src}/pystring.h" "$(P pystring)/include/"
 }
 
 build_minizipng() {
