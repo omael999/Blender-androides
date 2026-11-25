@@ -32,12 +32,12 @@ main() de Blender     -> creator.cc sin cambios (renombrado a blender_android_ma
 
 ## Compilar
 
-Requisitos (Linux x86_64 o macOS): Android SDK + NDK r27, CMake ≥ 3.24, Ninja, Meson, Python 3.13,
+Requisitos (Linux x86_64 o macOS): Android SDK + NDK r29 (libc++ 19+ para `std::atomic_ref`), CMake ≥ 3.24, Ninja, Meson, Python 3.13,
 JDK 17+, Gradle 8.9+ (o Android Studio), ~40 GB libres y bastante tiempo (las dependencias tardan horas).
 
 ```bash
 export ANDROID_HOME=~/Android/Sdk
-export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018
+export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/<versión r29>
 
 ./build_files/android/build_android.sh               # deps + Blender + APK (debug)
 ./build_files/android/build_android.sh --skip-deps   # recompilar solo Blender + APK

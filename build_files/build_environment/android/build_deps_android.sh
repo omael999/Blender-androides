@@ -14,7 +14,7 @@
 # so this stays in sync with the official desktop builds.
 #
 # Requirements on the host (Linux x86_64 or macOS):
-#   - Android NDK r27+ ($ANDROID_NDK_HOME) and SDK ($ANDROID_HOME, for CPython's build)
+#   - Android NDK r29+ ($ANDROID_NDK_HOME) and SDK ($ANDROID_HOME, for CPython's build)
 #   - cmake >= 3.24, ninja, meson, python3 (3.13 recommended), curl, git, patch
 #
 # Usage:
@@ -32,7 +32,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BLENDER_SRC="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 VERSIONS_CMAKE="${BLENDER_SRC}/build_files/build_environment/cmake/versions.cmake"
 
-: "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the Android NDK (r27 or newer)}"
+: "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the Android NDK (r29 or newer)}"
 ABI="${ANDROID_ABI:-arm64-v8a}"
 API="${ANDROID_API:-29}"
 JOBS="${JOBS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu)}"

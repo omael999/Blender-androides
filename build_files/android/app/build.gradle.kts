@@ -25,7 +25,8 @@ val stagedAssets = layout.buildDirectory.dir("blender/assets")
 android {
     namespace = "org.blender.android"
     compileSdk = 35
-    ndkVersion = "27.2.12479018"
+    // Native code is built outside Gradle, use the same NDK (passed by build_android.sh).
+    providers.gradleProperty("blender.ndkVersion").orNull?.let { ndkVersion = it }
 
     defaultConfig {
         applicationId = "org.blender.android"

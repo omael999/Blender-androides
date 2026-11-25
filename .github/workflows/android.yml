@@ -24,7 +24,8 @@ concurrency:
 env:
   ANDROID_ABI: arm64-v8a
   ANDROID_API: "29"
-  NDK_VERSION: 27.2.12479018
+  # libc++ 19+ is needed (std::atomic_ref), the newest NDK of this major is resolved below.
+  NDK_MAJOR: "29"
   LIBDIR: ${{ github.workspace }}/lib/android_arm64-v8a
 
 jobs:
@@ -34,11 +35,22 @@ jobs:
     timeout-minutes: 340
     outputs:
       cache-key: ${{ steps.key.outputs.key }}
+      ndk-version: ${{ steps.ndk.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: false
+
+      - name: Resolve NDK version
+        id: ndk
+        run: |
+          v=$("$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list 2>/dev/null \
+            | sed -n "s/^ *ndk;\(${NDK_MAJOR}\.[0-9.]*\) .*/\1/p" | sort -uV | tail -1)
+          test -n "$v"
+          echo "NDK $v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "NDK_VERSION=$v" >> "$GITHUB_ENV"
 
       - name: Cache key
         id: key
@@ -116,6 +128,8 @@ jobs:
     needs: deps
     runs-on: ubuntu-24.04
     timeout-minutes: 340
+    env:
+      NDK_VERSION: ${{ needs.deps.outputs.ndk-version }}
     steps:
       - uses: actions/checkout@v4
         with:

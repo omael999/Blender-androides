@@ -26,7 +26,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BLENDER_SRC="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 : "${ANDROID_HOME:?Set ANDROID_HOME to the Android SDK}"
-: "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the Android NDK (r27 or newer)}"
+: "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the Android NDK (r29 or newer)}"
 
 ABI="${ANDROID_ABI:-arm64-v8a}"
 API="${ANDROID_API:-29}"
@@ -112,7 +112,9 @@ cd "${SCRIPT_DIR}"
 echo "sdk.dir=${ANDROID_HOME}" > local.properties
 GRADLE="./gradlew"
 [[ -x "${GRADLE}" ]] || GRADLE="gradle"
+NDK_REVISION="$(sed -n 's/^Pkg.Revision *= *//p' "${ANDROID_NDK_HOME}/source.properties")"
 "${GRADLE}" "${GRADLE_TASK}" \
+  -Pblender.ndkVersion="${NDK_REVISION}" \
   -Pblender.installDir="${INSTALL_DIR}" \
   -Psdl.sourceDir="${BLENDER_SRC}/lib/android_src/SDL3" \
   -Pblender.version="${BLENDER_VERSION}"
