@@ -150,6 +150,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14"
+          # SDL3's sample project (restored from the deps cache) ships its own wrapper jar,
+          # which is not used: the APK is built with the Gradle installed here.
+          validate-wrappers: false
 
       - name: Install NDK
         run: |
