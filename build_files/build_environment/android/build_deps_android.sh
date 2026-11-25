@@ -72,7 +72,7 @@ set(BUILD_MODE Release)
 include(${VERSIONS})
 foreach(v ZLIB ZSTD PNG JPEG BROTLI FREETYPE DEFLATE IMATH OPENEXR FMT ROBINMAP TBB
           EXPAT YAMLCPP PYSTRING MINIZIPNG OPENCOLORIO OPENIMAGEIO SSE2NEON TIFF
-          VULKAN_HEADERS SHADERC SDL EPOXY PYTHON)
+          VULKAN_HEADERS SHADERC SDL EPOXY PYTHON EIGEN)
   message("${v}|${${v}_VERSION}|${${v}_URI}")
 endforeach()
 EOF
@@ -283,6 +283,12 @@ build_openimageio() {
     -DOpenColorIO_DIR="$(P opencolorio)/lib/cmake/OpenColorIO"
 }
 
+build_eigen() {
+  # Header only, always required by Blender (also by Ceres/libmv when enabled).
+  cmake_dep EIGEN eigen -DEIGEN_BUILD_TESTING=OFF -DEIGEN_BUILD_DOC=OFF \
+    -DEIGEN_BUILD_PKGCONFIG=OFF -DEIGEN_BUILD_BLAS=OFF -DEIGEN_BUILD_LAPACK=OFF
+}
+
 build_sse2neon() {
   [[ "${ABI}" == arm64-v8a ]] || return 0
   local src
@@ -386,7 +392,7 @@ build_versions() {
 
 ALL_DEPS=(zlib zstd deflate png jpeg tiff brotli freetype imath openexr fmt robinmap tbb
           expat yamlcpp pystring minizipng opencolorio openimageio sse2neon vulkan shaderc
-          sdl epoxy python)
+          sdl epoxy python eigen)
 
 if [[ $# -gt 0 ]]; then
   DEPS=("$@")
@@ -394,7 +400,14 @@ else
   DEPS=("${ALL_DEPS[@]}")
 fi
 
+# Dependencies already installed in LIBDIR are skipped (so a cached LIBDIR only
+# builds what is new), unless named explicitly or FORCE_DEPS=1.
 for dep in "${DEPS[@]}"; do
+  if [[ $# -eq 0 && "${FORCE_DEPS:-0}" != 1 && "${dep}" != versions && \
+        -n "$(ls -A "$(P "${dep}")" 2>/dev/null)" ]]; then
+    log "Skipping ${dep} (already in $(P "${dep}"))"
+    continue
+  fi
   "build_${dep}"
 done
 

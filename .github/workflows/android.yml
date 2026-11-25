@@ -56,6 +56,8 @@ jobs:
             lib/android_arm64-v8a
             lib/android_src
           key: ${{ steps.key.outputs.key }}
+          # A previous cache is reused, build_deps_android.sh only builds what is missing.
+          restore-keys: android-deps-${{ env.ANDROID_ABI }}-${{ env.NDK_VERSION }}-
 
       - name: Free disk space
         if: steps.cache.outputs.cache-hit != 'true'
@@ -88,8 +90,10 @@ jobs:
           JOBS=$(nproc) WORK_DIR="$RUNNER_TEMP/deps" \
             ./build_files/build_environment/android/build_deps_android.sh 2>&1 | tee deps.log
           # SDL's source is a symlink into WORK_DIR, keep a real copy for the cache.
-          cp -rL lib/android_src/SDL3 lib/android_src/SDL3.real
-          rm lib/android_src/SDL3 && mv lib/android_src/SDL3.real lib/android_src/SDL3
+          if [ -L lib/android_src/SDL3 ]; then
+            cp -rL lib/android_src/SDL3 lib/android_src/SDL3.real
+            rm lib/android_src/SDL3 && mv lib/android_src/SDL3.real lib/android_src/SDL3
+          fi
 
       - name: Save dependency cache
         if: steps.cache.outputs.cache-hit != 'true'

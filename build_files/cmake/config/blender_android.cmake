@@ -39,6 +39,8 @@ set(WITH_CODEC_FFMPEG        OFF CACHE BOOL "" FORCE)
 set(WITH_CODEC_SNDFILE       OFF CACHE BOOL "" FORCE)
 set(WITH_CYCLES              OFF CACHE BOOL "" FORCE)  # Phase 3 (CPU only).
 set(WITH_DRACO               OFF CACHE BOOL "" FORCE)
+set(WITH_EMBREE              OFF CACHE BOOL "" FORCE)
+set(WITH_TRACY               OFF CACHE BOOL "" FORCE)
 set(WITH_MESHOPTIMIZER       OFF CACHE BOOL "" FORCE)
 set(WITH_KTX                 OFF CACHE BOOL "" FORCE)
 set(WITH_FFTW3               OFF CACHE BOOL "" FORCE)
