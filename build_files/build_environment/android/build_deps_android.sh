@@ -72,7 +72,7 @@ set(BUILD_MODE Release)
 include(${VERSIONS})
 foreach(v ZLIB ZSTD PNG JPEG BROTLI FREETYPE DEFLATE IMATH OPENEXR FMT ROBINMAP TBB
           EXPAT YAMLCPP PYSTRING MINIZIPNG OPENCOLORIO OPENIMAGEIO SSE2NEON TIFF
-          VULKAN_HEADERS SHADERC SDL EPOXY PYTHON EIGEN)
+          VULKAN_HEADERS SHADERC SDL EPOXY PYTHON EIGEN SPIRV_HEADERS)
   message("${v}|${${v}_VERSION}|${${v}_URI}")
 endforeach()
 EOF
@@ -305,6 +305,12 @@ build_vulkan() {
   ln -sf "${NDK_SYSROOT}/usr/lib/${TRIPLE}/${API}/libvulkan.so" "$(P vulkan)/lib/libvulkan.so"
 }
 
+build_spirv_headers() {
+  # `spirv/unified1/spirv.h`, included by Blender's Vulkan shader compiler.
+  cmake_dep SPIRV_HEADERS spirv_headers -DSPIRV_HEADERS_ENABLE_TESTS=OFF \
+    -DSPIRV_HEADERS_ENABLE_INSTALL=ON
+}
+
 build_shaderc() {
   # Blender compiles GLSL to SPIR-V at run-time with shaderc.
   local src
@@ -392,7 +398,7 @@ build_versions() {
 
 ALL_DEPS=(zlib zstd deflate png jpeg tiff brotli freetype imath openexr fmt robinmap tbb
           expat yamlcpp pystring minizipng opencolorio openimageio sse2neon vulkan shaderc
-          sdl epoxy python eigen)
+          sdl epoxy python eigen spirv_headers)
 
 if [[ $# -gt 0 ]]; then
   DEPS=("$@")

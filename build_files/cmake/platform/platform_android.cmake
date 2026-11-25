@@ -112,6 +112,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/platform_unix.cmake)
 
 list(APPEND PLATFORM_LINKLIBS ${BLENDER_ANDROID_LINKLIBS})
 
+# SPIR-V headers (`spirv/unified1/spirv.h`) used by the Vulkan backend.
+if(EXISTS "${LIBDIR}/spirv_headers/include")
+  list(APPEND VULKAN_INCLUDE_DIRS "${LIBDIR}/spirv_headers/include")
+else()
+  message(FATAL_ERROR "SPIR-V headers missing in ${LIBDIR}/spirv_headers, rebuild the deps")
+endif()
+
 # The NDK clang is always used, Android requires PIC and 16 KB page alignment
 # for devices running Android 15+.
 string(APPEND PLATFORM_CFLAGS " -fPIC")
