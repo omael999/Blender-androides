@@ -122,23 +122,33 @@ jobs:
           fetch-depth: 1
           submodules: false
 
+      - name: LFS cache key
+        id: lfs
+        run: |
+          key=$(git lfs ls-files -l -I "release/datafiles/**,assets/**,scripts/startup/**" | sha256sum | cut -c1-32)
+          echo "key=blender-lfs-$key" >> "$GITHUB_OUTPUT"
+
+      - name: Restore LFS objects
+        id: lfs-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/lfs/objects
+          key: ${{ steps.lfs.outputs.key }}
+          restore-keys: blender-lfs-
+
       - name: Fetch Git LFS data files
         # Blender keeps startup.blend, icons, studio lights etc. in Git LFS on
         # projects.blender.org; forks on GitHub only contain the pointer files.
-        # Only what the build needs is fetched (not the ~6700 test files).
         run: |
-          INCLUDE="release/datafiles/**,assets/**,scripts/startup/**"
-          for url in \
-              https://projects.blender.org/blender/blender.git/info/lfs \
-              https://github.com/blender/blender.git/info/lfs; do
-            echo "Trying LFS server: $url"
-            if git -c lfs.url="$url" lfs pull --include="$INCLUDE"; then
-              break
-            fi
-          done
-          size=$(stat -c%s release/datafiles/startup.blend)
-          echo "startup.blend: $size bytes"
-          test "$size" -gt 1024
+          git lfs checkout "release/datafiles/**" "assets/**" "scripts/startup/**" || true
+          ./build_files/android/fetch_lfs.sh
+
+      - name: Save LFS objects
+        if: steps.lfs-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .git/lfs/objects
+          key: ${{ steps.lfs.outputs.key }}
 
       - name: Free disk space
         run: |
