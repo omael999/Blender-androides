@@ -1108,7 +1108,7 @@ function(data_to_c
 
   add_custom_command(
     OUTPUT ${file_to}
-    COMMAND "$<TARGET_FILE:datatoc>" ${file_from} ${file_to} ${symbol_name_override}
+    COMMAND "${BLENDER_TOOL_datatoc}" ${file_from} ${file_to} ${symbol_name_override}
     DEPENDS ${file_from} datatoc)
 
   set_source_files_properties(${file_to} PROPERTIES GENERATED TRUE)
@@ -1132,7 +1132,7 @@ function(data_to_c_simple
 
   add_custom_command(
     OUTPUT  ${_file_to}
-    COMMAND "$<TARGET_FILE:datatoc>" ${_file_from} ${_file_to}
+    COMMAND "${BLENDER_TOOL_datatoc}" ${_file_from} ${_file_to}
     DEPENDS ${_file_from} datatoc)
 
   set_source_files_properties(${_file_to} PROPERTIES GENERATED TRUE)
@@ -1170,13 +1170,13 @@ function(glsl_to_c
     OUTPUT  ${_file_tmp} ${_file_meta} ${_file_info} ${_file_dep}
     DEPFILE ${_file_dep}
     COMMAND
-      "$<TARGET_FILE:shader_tool>"
+      "${BLENDER_TOOL_shader_tool}"
       ${_file_from} ${_file_tmp} ${_file_meta} ${_file_info} ${_file_dep} ${_inc_list}
     DEPENDS ${_file_from} shader_tool)
 
   add_custom_command(
     OUTPUT  ${_file_to}
-    COMMAND "$<TARGET_FILE:datatoc>" ${_file_tmp} ${_file_to}
+    COMMAND "${BLENDER_TOOL_datatoc}" ${_file_tmp} ${_file_to}
     DEPENDS ${_file_tmp} datatoc)
 
   set_source_files_properties(${_file_tmp} PROPERTIES GENERATED TRUE)
@@ -1209,7 +1209,7 @@ function(msgfmt_simple
     make_directory ${_file_to_path}
 
     COMMAND ${CMAKE_COMMAND} -E
-    env ${PLATFORM_ENV_BUILD} "$<TARGET_FILE:msgfmt>" ${_file_from} ${_file_to}
+    env ${PLATFORM_ENV_BUILD} "${BLENDER_TOOL_msgfmt}" ${_file_from} ${_file_to}
 
     DEPENDS msgfmt ${_file_from})
 

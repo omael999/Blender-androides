@@ -78,6 +78,24 @@ enable_testing()
 
 include(build_files/cmake/macros.cmake)
 
+# Code generators executed during the build. When cross-compiling (e.g. Android) the
+# target binaries can't run on the build machine: point BLENDER_HOST_TOOLS_DIR at a
+# native build of these tools (see `build_files/android/build_host_tools.sh`).
+set(BLENDER_HOST_TOOLS_DIR "" CACHE PATH
+  "Directory with native makesdna, makesrna, datatoc, msgfmt, shader_tool (cross-compiling)")
+mark_as_advanced(BLENDER_HOST_TOOLS_DIR)
+foreach(_tool makesdna makesrna datatoc msgfmt shader_tool)
+  if(BLENDER_HOST_TOOLS_DIR)
+    set(BLENDER_TOOL_${_tool} "${BLENDER_HOST_TOOLS_DIR}/${_tool}")
+  else()
+    set(BLENDER_TOOL_${_tool} "$<TARGET_FILE:${_tool}>")
+  endif()
+endforeach()
+unset(_tool)
+if(CMAKE_CROSSCOMPILING AND NOT BLENDER_HOST_TOOLS_DIR)
+  message(FATAL_ERROR "Cross-compiling requires BLENDER_HOST_TOOLS_DIR (native code generators)")
+endif()
+
 # There are some circumstances where the git checkout doesn't grab
 # the files from LFS but produces small pointer files. The build system
 # does not pick up on this, and at runtime blender will throw a strange

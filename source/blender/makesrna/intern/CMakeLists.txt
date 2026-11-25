@@ -430,7 +430,7 @@ add_custom_command(
   OUTPUT ${GENSRC}
   COMMAND
     ${CMAKE_COMMAND} -E env ${PLATFORM_ENV_BUILD}
-    "$<TARGET_FILE:makesrna>"
+    "${BLENDER_TOOL_makesrna}"
     ${CMAKE_SOURCE_DIR}/source/blender/makesdna/
     ${CMAKE_CURRENT_BINARY_DIR}/
     ${CMAKE_CURRENT_BINARY_DIR}/../

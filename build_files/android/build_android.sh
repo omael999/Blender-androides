@@ -66,6 +66,11 @@ fi
 # -----------------------------------------------------------------------------
 # 2. Blender
 
+# Code generators (makesdna, makesrna...) must run on this machine, build them natively.
+HOST_TOOLS_DIR="${HOST_TOOLS_DIR:-${BUILD_DIR}_host}"
+log "Building native code generators in ${HOST_TOOLS_DIR}"
+"${SCRIPT_DIR}/build_host_tools.sh" "${HOST_TOOLS_DIR}"
+
 log "Configuring Blender ${BLENDER_VERSION} for Android ${ABI} (API ${API})"
 cmake -S "${BLENDER_SRC}" -B "${BUILD_DIR}" -G Ninja \
   -C "${BLENDER_SRC}/build_files/cmake/config/blender_android.cmake" \
@@ -76,7 +81,8 @@ cmake -S "${BLENDER_SRC}" -B "${BUILD_DIR}" -G Ninja \
   -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
   -DWITH_INSTALL_PORTABLE=ON \
-  -DLIBDIR="${LIBDIR}"
+  -DLIBDIR="${LIBDIR}" \
+  -DBLENDER_HOST_TOOLS_DIR="${HOST_TOOLS_DIR}/blender/bin"
 
 log "Compiling Blender (${JOBS} jobs)"
 cmake --build "${BUILD_DIR}" -j "${JOBS}"
