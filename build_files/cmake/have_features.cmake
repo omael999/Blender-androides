@@ -27,8 +27,10 @@ endif()
 # `execinfo` is not available on non-GLIBC systems (at least not on MUSL-LIBC),
 # so check the presence of the header before including it and using it for back-trace.
 if(NOT MSVC)
-  include(CheckIncludeFiles)
-  check_include_files("execinfo.h" HAVE_EXECINFO_H)
+  # Check the function, not only the header: Android's NDK ships `execinfo.h` but
+  # `backtrace()` is only declared for API level 33+.
+  include(CheckSymbolExists)
+  check_symbol_exists(backtrace "execinfo.h" HAVE_EXECINFO_H)
   if(HAVE_EXECINFO_H)
     add_definitions(-DHAVE_EXECINFO_H)
   endif()

@@ -333,7 +333,8 @@ static bool ensure_mmap_initialized()
 
   std::unique_lock lock(mmap_mutex);
   if (!initialized) {
-    struct sigaction newact = {{nullptr}}, oldact = {{nullptr}};
+    /* Value-initialize, the member order of `sigaction` differs between libc's (bionic). */
+    struct sigaction newact = {}, oldact = {};
 
     newact.sa_sigaction = sigbus_handler;
     newact.sa_flags = SA_SIGINFO;

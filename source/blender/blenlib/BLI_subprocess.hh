@@ -15,7 +15,8 @@
  * Its use should always be inside `#if BLI_SUBPROCESS_SUPPORT` preprocessor directives.
  */
 
-#if defined(_WIN32) || defined(__linux__)
+/* Android: no `shm_open` in bionic and no use for shader compilation sub-processes. */
+#if defined(_WIN32) || (defined(__linux__) && !defined(__ANDROID__))
 #  define BLI_SUBPROCESS_SUPPORT 1
 #else
 #  define BLI_SUBPROCESS_SUPPORT 0
