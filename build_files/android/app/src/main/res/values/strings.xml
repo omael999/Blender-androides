@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Blender</string>
+    <string name="setup_preparing">Preparando Blender por primera vez…</string>
+    <string name="setup_progress">Extrayendo archivos de datos… (%1$d)</string>
+    <string name="setup_failed">No se pudieron extraer los datos de Blender:\n%1$s</string>
+</resources>

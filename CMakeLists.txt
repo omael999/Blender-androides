@@ -968,7 +968,10 @@ mark_as_advanced(WITH_TRACY)
 
 
 # OpenGL
-if(NOT APPLE)
+if(ANDROID)
+  # Android only provides OpenGL ES, Blender needs desktop OpenGL 4.3. Use Vulkan.
+  set(WITH_OPENGL_BACKEND OFF)
+elseif(NOT APPLE)
   option(WITH_OPENGL_BACKEND "Enable OpenGL support as graphics backend" ON)
   mark_as_advanced(WITH_OPENGL_BACKEND)
 else()
@@ -1588,7 +1591,9 @@ endif()
 # - WIN32
 # - APPLE
 
-if(UNIX AND NOT APPLE)
+if(ANDROID)
+  include(build_files/cmake/platform/platform_android.cmake)
+elseif(UNIX AND NOT APPLE)
   include(build_files/cmake/platform/platform_unix.cmake)
 elseif(WIN32)
   include(build_files/cmake/platform/platform_win32.cmake)

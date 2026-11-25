@@ -155,6 +155,12 @@ set(SRC
   creator_intern.h
 )
 
+if(ANDROID)
+  list(APPEND SRC
+    creator_android.cc
+  )
+endif()
+
 if(CMAKE_GENERATOR MATCHES "^Visual Studio.+")
   # This helps visual studio find the debugger visualizers
   list(APPEND SRC ${CMAKE_SOURCE_DIR}/tools/utils_ide/natvis/Blender.natvis)
@@ -340,6 +346,12 @@ if(WITH_PYTHON_MODULE)
     )
   endif()
 
+elseif(ANDROID)
+  # On Android the application is a Java `SDLActivity` which loads `libmain.so`
+  # and calls `SDL_main()`, see `build_files/android/`.
+  add_library(blender SHARED ${SRC})
+  set_target_properties(blender PROPERTIES OUTPUT_NAME main)
+  target_link_libraries(blender PRIVATE bf::dependencies::optional::sdl)
 else()
   add_executable(blender ${EXETYPE} ${SRC})
   if(WITH_CPU_CHECK)

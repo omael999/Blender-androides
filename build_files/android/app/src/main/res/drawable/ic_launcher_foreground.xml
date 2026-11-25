@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder launcher icon (generic 3D cube). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F5F5F5" android:pathData="M54,30 L76,42 L54,54 L32,42 Z"/>
+    <path android:fillColor="#BDBDBD" android:pathData="M32,42 L54,54 L54,78 L32,66 Z"/>
+    <path android:fillColor="#8A8A8A" android:pathData="M76,42 L54,54 L54,78 L76,66 Z"/>
+</vector>

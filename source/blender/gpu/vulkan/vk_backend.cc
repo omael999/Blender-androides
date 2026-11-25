@@ -183,8 +183,10 @@ static Vector<StringRefNull> missing_capabilities_get(VkPhysicalDevice vk_physic
   VkPhysicalDeviceFeatures2 features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
   vkGetPhysicalDeviceFeatures2(vk_physical_device, &features);
 
-#ifndef __APPLE__
-  /* Features currently not supported by Mesa KosmicKrisp. */
+#if !defined(__APPLE__) && !defined(BLENDER_ANDROID)
+  /* Features currently not supported by Mesa KosmicKrisp.
+   * Many mobile GPUs (e.g. ARM Mali) do not expose geometry shaders either,
+   * Blender falls back to non geometry-shader code paths in that case. */
   if (features.features.geometryShader == VK_FALSE) {
     missing_capabilities.append("geometry shaders");
   }
@@ -890,7 +892,11 @@ void VKBackend::capabilities_init(VKDevice &device)
 
   /* Reset all capabilities from previous context. */
   GCaps = {};
+#ifdef BLENDER_ANDROID
+  GCaps.geometry_shader_support = device.physical_device_features_get().geometryShader;
+#else
   GCaps.geometry_shader_support = true;
+#endif
   GCaps.stencil_export_support = device.supports_extension(
       VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME);
   GCaps.vertex_pipeline_stores_and_atomics_support =

@@ -324,6 +324,13 @@ void main_python_exit()
 extern "C" int GHOST_HACK_getFirstFile(char buf[]);
 #endif
 
+#ifdef BLENDER_ANDROID
+/* On Android `SDL_main` (see `creator_android.cc`) prepares the environment
+ * and then calls Blender's regular main function under this name. */
+int blender_android_main(int argc, const char **argv);
+#  define main blender_android_main
+#endif
+
 /**
  * Blender's main function responsibilities are:
  * - setup subsystems.
