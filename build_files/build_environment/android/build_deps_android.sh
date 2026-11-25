@@ -124,6 +124,9 @@ cmake_dep() {
     -DCMAKE_INSTALL_PREFIX="${PREFIX_ROOT}/${sub}" \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_FIND_ROOT_PATH="${PREFIX_ROOT}" \
+    -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
+    -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH \
+    -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
     -DCMAKE_PREFIX_PATH="$(find "${PREFIX_ROOT}" -mindepth 1 -maxdepth 1 -type d | paste -sd';')" \
     -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-z,max-page-size=16384 -Wl,--undefined-version" \
     -DBUILD_TESTING=OFF \
@@ -157,8 +160,11 @@ build_png() {
 }
 
 build_jpeg() {
+  # libjpeg-turbo 2.x resolves a relative CMAKE_INSTALL_LIBDIR against the wrong root.
   cmake_dep JPEG jpeg -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DWITH_TURBOJPEG=OFF \
-    -DCMAKE_INSTALL_LIBDIR=lib
+    -DCMAKE_INSTALL_LIBDIR="$(P jpeg)/lib" -DCMAKE_INSTALL_INCLUDEDIR="$(P jpeg)/include" \
+    -DCMAKE_INSTALL_BINDIR="$(P jpeg)/bin" -DCMAKE_INSTALL_DOCDIR="$(P jpeg)/share/doc" \
+    -DCMAKE_INSTALL_MANDIR="$(P jpeg)/share/man"
 }
 
 build_tiff() {
@@ -263,6 +269,10 @@ build_openimageio() {
     -DOpenImageIO_BUILD_MISSING_DEPS="" -DSTOP_ON_WARNING=OFF \
     -DZLIB_ROOT="$(P zlib)" -DPNG_ROOT="$(P png)" -DJPEG_ROOT="$(P jpeg)" \
     -Dlibjpeg-turbo_ROOT="$(P jpeg)" -DTIFF_ROOT="$(P tiff)" \
+    -DJPEG_INCLUDE_DIR="$(P jpeg)/include" -DJPEG_LIBRARY="$(P jpeg)/lib/libjpeg.a" \
+    -DPNG_PNG_INCLUDE_DIR="$(P png)/include" -DPNG_LIBRARY="$(P png)/lib/libpng.a" \
+    -DTIFF_INCLUDE_DIR="$(P tiff)/include" -DTIFF_LIBRARY="$(P tiff)/lib/libtiff.a" \
+    -DZLIB_LIBRARY="$(P zlib)/lib/libz.a" -DZLIB_INCLUDE_DIR="$(P zlib)/include" \
     -DImath_DIR="$(P imath)/lib/cmake/Imath" -DOpenEXR_DIR="$(P openexr)/lib/cmake/OpenEXR" \
     -Dfmt_ROOT="$(P fmt)" -DRobinmap_ROOT="$(P robinmap)" -DTBB_ROOT="$(P tbb)" \
     -DOpenColorIO_DIR="$(P opencolorio)/lib/cmake/OpenColorIO"
