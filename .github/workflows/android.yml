@@ -211,8 +211,8 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" > /dev/null
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
-      - name: ccache
-        uses: actions/cache@v4
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ccache
           key: android-ccache-${{ github.sha }}
@@ -222,11 +222,19 @@ jobs:
         env:
           CMAKE_C_COMPILER_LAUNCHER: ccache
           CMAKE_CXX_COMPILER_LAUNCHER: ccache
-          CCACHE_MAXSIZE: 3G
+          CCACHE_MAXSIZE: 6G
         run: |
           set -o pipefail
           BUILD_DIR="$RUNNER_TEMP/build_android" JOBS=$(nproc) \
             ./build_files/android/build_android.sh --skip-deps 2>&1 | tee blender.log
+
+      # Saved even when the build fails, so the next attempt only recompiles what changed.
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ccache
+          key: android-ccache-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
