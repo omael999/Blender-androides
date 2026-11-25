@@ -106,6 +106,9 @@ fetch() {
 }
 
 # cmake_dep <NAME> <install-subdir> [extra cmake args...]
+#
+# Note: NDK r26+ links with `--no-undefined-version`, which rejects version scripts
+# naming symbols a library does not define (TBB's do), `--undefined-version` relaxes that.
 cmake_dep() {
   local name=$1 sub=$2; shift 2
   local src build
@@ -122,7 +125,7 @@ cmake_dep() {
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DCMAKE_FIND_ROOT_PATH="${PREFIX_ROOT}" \
     -DCMAKE_PREFIX_PATH="$(find "${PREFIX_ROOT}" -mindepth 1 -maxdepth 1 -type d | paste -sd';')" \
-    -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-z,max-page-size=16384" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-z,max-page-size=16384 -Wl,--undefined-version" \
     -DBUILD_TESTING=OFF \
     "$@"
   cmake --build "${build}" -j "${JOBS}"
