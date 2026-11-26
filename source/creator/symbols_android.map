@@ -1,0 +1,15 @@
+/* Android (`libmain.so`): hide all symbols except a few required ones.
+ *
+ * Unlike `symbols_unix.map` there is no `_init`/`_fini` (bionic uses init_array),
+ * and `SDL_main` must be visible: SDL's Java side looks it up with `dlsym`. */
+{
+global:
+  /* Entry point called by SDLActivity (see `creator_android.cc`). Exact names must
+   * exist in libmain.so: the NDK links with --no-undefined-version. */
+  SDL_main;
+  /* Needed for Python modules to work. */
+  Py*;
+  _Py*;
+local:
+  *;
+};

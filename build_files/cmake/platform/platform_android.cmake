@@ -112,6 +112,11 @@ include(${CMAKE_CURRENT_LIST_DIR}/platform_unix.cmake)
 
 list(APPEND PLATFORM_LINKLIBS ${BLENDER_ANDROID_LINKLIBS})
 
+# `symbols_unix.map` lists `_init`/`_fini`, which bionic doesn't define (lld errors out),
+# and doesn't export `SDL_main`, which SDLActivity needs.
+set(PLATFORM_SYMBOLS_MAP ${CMAKE_SOURCE_DIR}/source/creator/symbols_android.map)
+set(PLATFORM_LINKFLAGS_SYMBOL_HIDING "-Wl,--version-script='${PLATFORM_SYMBOLS_MAP}'")
+
 # SPIR-V headers (`spirv/unified1/spirv.h`) used by the Vulkan backend.
 if(EXISTS "${LIBDIR}/spirv_headers/include")
   list(APPEND VULKAN_INCLUDE_DIRS "${LIBDIR}/spirv_headers/include")
