@@ -128,6 +128,8 @@ jobs:
     needs: deps
     runs-on: ubuntu-24.04
     timeout-minutes: 340
+    permissions:
+      contents: write  # Publish the APK as the `android-latest` pre-release.
     env:
       NDK_VERSION: ${{ needs.deps.outputs.ndk-version }}
     steps:
@@ -242,6 +244,20 @@ jobs:
           name: blender-android-${{ env.ANDROID_ABI }}
           path: build_files/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
+
+      - name: Publish APK (pre-release "android-latest")
+        # A direct .apk download link, easier to install from a phone than the artifact zip.
+        if: success() && github.ref == 'refs/heads/android-port'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(find build_files/android/app/build/outputs/apk -name '*.apk' | head -1)
+          cp "$apk" blender-android-arm64.apk
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest blender-android-arm64.apk \
+            --prerelease --target "${{ github.sha }}" \
+            --title "Blender Android (arm64) build ${{ github.run_number }}" \
+            --notes "Unofficial, experimental Android port of Blender (branch android-port, commit ${{ github.sha }}). Requires Android 10+ and a Vulkan 1.1+ GPU (e.g. Adreno). Debug-signed. Not tested on devices yet."
 
       - name: Upload log
         if: failure()
