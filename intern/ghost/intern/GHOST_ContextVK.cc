@@ -29,6 +29,29 @@
 #  include <SDL3/SDL_vulkan.h>
 #endif
 
+#ifdef __ANDROID__
+#  include <utility>
+
+/**
+ * Android reports `currentExtent` in the display's native orientation (portrait on phones) and
+ * the device rotation in `currentTransform`. Blender doesn't render pre-rotated content, so the
+ * swap-chain uses the logical (rotated) size with an identity transform and the system
+ * compositor rotates the image. Using the native extent would stretch the image in landscape.
+ */
+static VkExtent2D android_logical_extent(const VkSurfaceCapabilitiesKHR &capabilities)
+{
+  VkExtent2D extent = capabilities.currentExtent;
+  if (capabilities.currentTransform &
+      (VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR | VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR |
+       VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR |
+       VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR))
+  {
+    std::swap(extent.width, extent.height);
+  }
+  return extent;
+}
+#endif
+
 #include "GHOST_ContextVK.hh"
 #include "GHOST_Types.hh"
 
@@ -1041,6 +1064,20 @@ GHOST_TSuccess GHOST_ContextVK::swapBufferAcquire()
       }
     }
 #endif
+#ifdef __ANDROID__
+    /* Android doesn't report a rotation as out-of-date, compare the logical surface size. */
+    if (swapchain_ != VK_NULL_HANDLE && surface_ != VK_NULL_HANDLE) {
+      VkSurfaceCapabilitiesKHR capabilities = {};
+      if (volk::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+              device_vk.vk_physical_device, surface_, &capabilities) == VK_SUCCESS)
+      {
+        const VkExtent2D extent = android_logical_extent(capabilities);
+        if (extent.width != render_extent_.width || extent.height != render_extent_.height) {
+          recreateSwapchain(use_hdr_swapchain);
+        }
+      }
+    }
+#endif
   }
   /* there is no valid swapchain when the previous window was minimized. User can have maximized
    * the window so we need to check if the swapchain has to be created. */
@@ -1053,9 +1090,16 @@ GHOST_TSuccess GHOST_ContextVK::swapBufferAcquire()
   if (swapchain_ != VK_NULL_HANDLE) {
     /* Some platforms (NVIDIA/Wayland) can receive an out of date swapchain when acquiring the next
      * swapchain image. Other do it when calling vkQueuePresent. */
+#ifdef __ANDROID__
+    /* With an identity pre-transform Android reports every rotated frame as sub-optimal,
+     * the image is still valid (the compositor rotates it), only re-create when out of date. */
+    constexpr VkResult suboptimal_result = VK_ERROR_OUT_OF_DATE_KHR;
+#else
+    constexpr VkResult suboptimal_result = VK_SUBOPTIMAL_KHR;
+#endif
     VkResult acquire_result = VK_ERROR_OUT_OF_DATE_KHR;
     while (swapchain_ != VK_NULL_HANDLE &&
-           (ELEM(acquire_result, VK_ERROR_OUT_OF_DATE_KHR, VK_SUBOPTIMAL_KHR)))
+           (ELEM(acquire_result, VK_ERROR_OUT_OF_DATE_KHR, suboptimal_result)))
     {
       acquire_result = device_vk.functions.vkAcquireNextImageKHR(
           vk_device,
@@ -1064,7 +1108,7 @@ GHOST_TSuccess GHOST_ContextVK::swapBufferAcquire()
           submission_frame_data.acquire_semaphore,
           VK_NULL_HANDLE,
           &image_index);
-      if (ELEM(acquire_result, VK_ERROR_OUT_OF_DATE_KHR, VK_SUBOPTIMAL_KHR)) {
+      if (ELEM(acquire_result, VK_ERROR_OUT_OF_DATE_KHR, suboptimal_result)) {
         recreateSwapchain(use_hdr_swapchain);
       }
     }
@@ -1202,6 +1246,12 @@ GHOST_TSuccess GHOST_ContextVK::swapBufferRelease()
   }
   acquired_swapchain_image_index_.reset();
 
+#ifdef __ANDROID__
+  /* See acquire: sub-optimal is expected with an identity pre-transform on Android. */
+  if (present_result == VK_SUBOPTIMAL_KHR) {
+    present_result = VK_SUCCESS;
+  }
+#endif
   if (ELEM(present_result, VK_ERROR_OUT_OF_DATE_KHR, VK_SUBOPTIMAL_KHR)) {
     recreateSwapchain(use_hdr_swapchain);
     return GHOST_kSuccess;
@@ -1508,6 +1558,9 @@ GHOST_TSuccess GHOST_ContextVK::recreateSwapchain(bool use_hdr_swapchain)
   supported_swapchain_usage_ = capabilities.supportedUsageFlags;
   use_hdr_swapchain_ = use_hdr_swapchain;
   render_extent_ = capabilities.currentExtent;
+#ifdef __ANDROID__
+  render_extent_ = android_logical_extent(capabilities);
+#endif
   render_extent_min_ = capabilities.minImageExtent;
   if (render_extent_.width == UINT32_MAX) {
     /* Window Manager is going to set the surface size based on the given size.
@@ -1621,6 +1674,11 @@ GHOST_TSuccess GHOST_ContextVK::recreateSwapchain(bool use_hdr_swapchain)
   create_info.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                            (use_hdr_swapchain ? VK_IMAGE_USAGE_STORAGE_BIT : 0);
   create_info.preTransform = capabilities.currentTransform;
+#ifdef __ANDROID__
+  if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
+    create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+  }
+#endif
   /* Alpha lets the compositor blend the surface against the desktop, needed by CSD for rounded
    * window corners. Not all surfaces support it, so fall back to opaque in those cases. The caller
    * handles the lack of transparency by drawing square corners, see #GHOST_Context::hasAlpha. */
