@@ -163,11 +163,22 @@ echo "sdk.dir=${ANDROID_HOME}" > local.properties
 GRADLE="./gradlew"
 [[ -x "${GRADLE}" ]] || GRADLE="gradle"
 NDK_REVISION="$(sed -n 's/^Pkg.Revision *= *//p' "${ANDROID_NDK_HOME}/source.properties")"
-"${GRADLE}" "${GRADLE_TASK}" \
-  -Pblender.ndkVersion="${NDK_REVISION}" \
-  -Pblender.installDir="${INSTALL_DIR}" \
-  -Psdl.sourceDir="${BLENDER_SRC}/lib/android_src/SDL3" \
-  -Pblender.version="${BLENDER_VERSION}"
+# Retry: Maven repositories occasionally answer 429 (Too Many Requests) to CI machines.
+for attempt in 1 2 3; do
+  if "${GRADLE}" "${GRADLE_TASK}" \
+      -Pblender.ndkVersion="${NDK_REVISION}" \
+      -Pblender.installDir="${INSTALL_DIR}" \
+      -Psdl.sourceDir="${BLENDER_SRC}/lib/android_src/SDL3" \
+      -Pblender.version="${BLENDER_VERSION}"; then
+    break
+  fi
+  if [[ ${attempt} -eq 3 ]]; then
+    echo "Gradle failed after ${attempt} attempts" >&2
+    exit 1
+  fi
+  echo "Gradle failed (attempt ${attempt}), retrying in $((attempt * 60)) s..."
+  sleep $((attempt * 60))
+done
 
 log "APK ready:"
 find "${SCRIPT_DIR}/app/build/outputs/apk" -name '*.apk' -print

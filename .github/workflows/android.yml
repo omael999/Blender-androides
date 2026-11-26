@@ -207,6 +207,9 @@ jobs:
           # SDL3's sample project (restored from the deps cache) ships its own wrapper jar,
           # which is not used: the APK is built with the Gradle installed here.
           validate-wrappers: false
+          # Cache Gradle dependencies from this branch too (default: only the default branch),
+          # Maven Central may rate-limit (HTTP 429) repeated downloads from CI.
+          cache-read-only: false
 
       - name: Install NDK
         run: |
