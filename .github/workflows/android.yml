@@ -182,7 +182,7 @@ jobs:
       - name: Host tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build rsync ccache gcc-14 g++-14 \
+          sudo apt-get install -y ninja-build rsync ccache gcc-14 g++-14 patchelf \
             libjpeg-dev libpng-dev zlib1g-dev libzstd-dev libepoxy-dev libfmt-dev \
             libfreetype-dev libbrotli-dev libimath-dev libopenexr-dev libopenimageio-dev openimageio-tools \
             libeigen3-dev libtbb-dev libvulkan-dev libshaderc-dev libyaml-cpp-dev \

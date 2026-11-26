@@ -94,12 +94,41 @@ cmake --install "${BUILD_DIR}"
 mkdir -p "${INSTALL_DIR}/lib"
 cp "${LIBDIR}/cxx/lib/libc++_shared.so" "${INSTALL_DIR}/lib/"
 # Shared libraries from the dependencies (SDL3, TBB, OIIO, OCIO, OpenEXR, Imath, Python...).
-find "${LIBDIR}" -path '*/lib/*.so' ! -name 'libvulkan.so' -exec cp -L {} "${INSTALL_DIR}/lib/" \;
-# Android only loads `lib*.so` without version suffixes from the APK.
-for f in "${INSTALL_DIR}"/lib/*.so.*; do
-  [[ -e "${f}" ]] || continue
-  echo "WARNING: versioned library ${f##*/}, set SONAME without version when building it" >&2
+# Only `<dep>/lib/*.so`, not e.g. Python's `lib-dynload` modules.
+find "${LIBDIR}" -mindepth 3 -maxdepth 3 -path '*/lib/*.so' ! -name 'libvulkan.so' \
+  -exec cp -L {} "${INSTALL_DIR}/lib/" \;
+rm -f "${INSTALL_DIR}"/lib/*.so.*
+
+# Android only packages and loads `lib*.so`: libraries with a versioned SONAME
+# (libSDL3.so.0, libOpenEXR-3_4.so.33...) get the SONAME of their file name, and
+# every reference to the old name is rewritten.
+ALL_SO=("${INSTALL_DIR}/libmain.so" "${INSTALL_DIR}"/lib/*.so)
+for f in "${INSTALL_DIR}"/lib/*.so; do
+  soname="$(patchelf --print-soname "${f}" 2>/dev/null || true)"
+  base="${f##*/}"
+  if [[ -n "${soname}" && "${soname}" != "${base}" ]]; then
+    echo "SONAME ${soname} -> ${base}"
+    patchelf --set-soname "${base}" "${f}"
+    for g in "${ALL_SO[@]}"; do
+      patchelf --replace-needed "${soname}" "${base}" "${g}"
+    done
+  fi
 done
+
+# Every needed library must be in the APK or part of Android itself.
+SYSTEM_LIBS="libc.so libm.so libdl.so liblog.so libandroid.so libvulkan.so libz.so \
+  libEGL.so libGLESv2.so libGLESv3.so libOpenSLES.so libaaudio.so libmediandk.so \
+  libjnigraphics.so"
+missing=0
+for g in "${ALL_SO[@]}"; do
+  for n in $(patchelf --print-needed "${g}"); do
+    if [[ ! -f "${INSTALL_DIR}/lib/${n}" && " ${SYSTEM_LIBS} " != *" ${n} "* ]]; then
+      echo "ERROR: ${g##*/} needs ${n}, which is not packaged" >&2
+      missing=1
+    fi
+  done
+done
+[[ ${missing} -eq 0 ]]
 
 # CPython standard library next to Blender's scripts (PYTHONHOME, see creator_android.cc).
 PY_SHORT="$(ls "${LIBDIR}/python/lib" | sed -n 's/^python\(3\.[0-9]*\)$/\1/p' | head -1)"
