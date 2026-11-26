@@ -116,9 +116,12 @@ for f in "${INSTALL_DIR}"/lib/*.so; do
 done
 
 # Every needed library must be in the APK or part of Android itself.
+# Stable NDK system libraries (provided by every Android device).
 SYSTEM_LIBS="libc.so libm.so libdl.so liblog.so libandroid.so libvulkan.so libz.so \
-  libEGL.so libGLESv2.so libGLESv3.so libOpenSLES.so libaaudio.so libmediandk.so \
-  libjnigraphics.so"
+  libEGL.so libGLESv1_CM.so libGLESv2.so libGLESv3.so libOpenSLES.so libOpenMAXAL.so \
+  libaaudio.so libamidi.so libmediandk.so libcamera2ndk.so libjnigraphics.so \
+  libnativewindow.so libsync.so libbinder_ndk.so libneuralnetworks.so libstdc++.so \
+  libicu.so"
 missing=0
 for g in "${ALL_SO[@]}"; do
   for n in $(patchelf --print-needed "${g}"); do
