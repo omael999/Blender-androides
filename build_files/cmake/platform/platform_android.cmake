@@ -117,6 +117,13 @@ list(APPEND PLATFORM_LINKLIBS ${BLENDER_ANDROID_LINKLIBS})
 set(PLATFORM_SYMBOLS_MAP ${CMAKE_SOURCE_DIR}/source/creator/symbols_android.map)
 set(PLATFORM_LINKFLAGS_SYMBOL_HIDING "-Wl,--version-script='${PLATFORM_SYMBOLS_MAP}'")
 
+# FreeType may have been built with PNG support (colour bitmap fonts). With static
+# libraries the order matters: make sure libpng/zlib come after FreeType.
+list(APPEND FREETYPE_LIBRARIES ${PNG_LIBRARIES} ${ZLIB_LIBRARIES})
+
+# Report all unresolved symbols at once instead of stopping after 20.
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--error-limit=0")
+
 # SPIR-V headers (`spirv/unified1/spirv.h`) used by the Vulkan backend.
 if(EXISTS "${LIBDIR}/spirv_headers/include")
   list(APPEND VULKAN_INCLUDE_DIRS "${LIBDIR}/spirv_headers/include")

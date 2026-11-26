@@ -183,13 +183,13 @@ build_brotli() {
 }
 
 build_freetype() {
-  # Blender requires FreeType with Brotli (WOFF2 fonts).
+  # Blender requires FreeType with Brotli (WOFF2 fonts). No PNG, like the official build.
   cmake_dep FREETYPE freetype -DBUILD_SHARED_LIBS=OFF \
-    -DFT_REQUIRE_BROTLI=ON -DFT_REQUIRE_ZLIB=ON -DFT_REQUIRE_PNG=ON \
+    -DFT_REQUIRE_BROTLI=ON -DFT_REQUIRE_ZLIB=ON -DFT_DISABLE_PNG=ON \
     -DFT_DISABLE_BZIP2=ON -DFT_DISABLE_HARFBUZZ=ON \
     -DBROTLIDEC_INCLUDE_DIRS="$(P brotli)/include" \
     -DBROTLIDEC_LIBRARIES="$(P brotli)/lib/libbrotlidec.a;$(P brotli)/lib/libbrotlicommon.a" \
-    -DZLIB_ROOT="$(P zlib)" -DPNG_ROOT="$(P png)"
+    -DZLIB_ROOT="$(P zlib)"
 }
 
 build_imath() {
