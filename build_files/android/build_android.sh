@@ -99,21 +99,33 @@ find "${LIBDIR}" -mindepth 3 -maxdepth 3 -path '*/lib/*.so' ! -name 'libvulkan.s
   -exec cp -L {} "${INSTALL_DIR}/lib/" \;
 rm -f "${INSTALL_DIR}"/lib/*.so.*
 
-# Android only packages and loads `lib*.so`: libraries with a versioned SONAME
-# (libSDL3.so.0, libOpenEXR-3_4.so.33...) get the SONAME of their file name, and
-# every reference to the old name is rewritten.
-ALL_SO=("${INSTALL_DIR}/libmain.so" "${INSTALL_DIR}"/lib/*.so)
+# Android only packages and loads `lib*.so`. For each library whose SONAME differs
+# from its file name (a copied symlink such as libIex.so -> libIex-3_4.so):
+#  - SONAME already `lib*.so` (libIex-3_4.so, CPython's libcrypto_python.so): keep it,
+#    make sure a file with exactly that name is packaged and drop the alias copy.
+#  - SONAME with a version suffix (libSDL3.so.0): rename the SONAME to the file name and
+#    rewrite every reference to it.
 for f in "${INSTALL_DIR}"/lib/*.so; do
+  [[ -f "${f}" ]] || continue
   soname="$(patchelf --print-soname "${f}" 2>/dev/null || true)"
   base="${f##*/}"
-  if [[ -n "${soname}" && "${soname}" != "${base}" ]]; then
+  [[ -z "${soname}" || "${soname}" == "${base}" ]] && continue
+  if [[ "${soname}" == lib*.so ]]; then
+    if [[ ! -f "${INSTALL_DIR}/lib/${soname}" ]]; then
+      mv "${f}" "${INSTALL_DIR}/lib/${soname}"
+    else
+      rm "${f}"
+    fi
+    echo "Keeping SONAME ${soname} (dropped alias ${base})"
+  else
     echo "SONAME ${soname} -> ${base}"
     patchelf --set-soname "${base}" "${f}"
-    for g in "${ALL_SO[@]}"; do
+    for g in "${INSTALL_DIR}/libmain.so" "${INSTALL_DIR}"/lib/*.so; do
       patchelf --replace-needed "${soname}" "${base}" "${g}"
     done
   fi
 done
+ALL_SO=("${INSTALL_DIR}/libmain.so" "${INSTALL_DIR}"/lib/*.so)
 
 # Every needed library must be in the APK or part of Android itself.
 # Stable NDK system libraries (provided by every Android device).
